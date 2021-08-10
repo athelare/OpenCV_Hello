@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.15)
+project(OpenCV_Hello)
+
+set(CMAKE_CXX_STANDARD 14)
+
+set(CMAKE_CXX_FLAGS"-Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG"-g")
+set(CMAKE_CXX_FLAGS_RELEASE"-O3")
+set(CMAKE_CXX_FLAGS_DEBUG"-O3")
+set(OpenCV_DIR D:/OpenCV/opencv/build)
+add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+add_executable(OpenCV_Hello main.cpp Dvp2Getframe.cpp getPhotoFromMultipleCameras.cpp DvpFrameCapture.h DetectStraitOrNot.cpp utils.cpp)
+FIND_PACKAGE(OpenCV REQUIRED)
+IF (OpenCV_FOUND)
+    INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIRS})
+    TARGET_LINK_LIBRARIES(OpenCV_Hello ${OpenCV_LIBS} D:\\Source\\CLionProjects\\OpenCV_Hello\\lib\\x64\\DVPCamera64.lib)
+ELSE (OpenCV_FOUND)
+    MESSAGE(FATAL_ERROR "OpenCV library not found")
+ENDIF (OpenCV_FOUND)
+
