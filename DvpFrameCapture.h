@@ -18,14 +18,27 @@ public:
         dvpStop(h);
         dvpClose(h);
     }
-    explicit DVPFrameCapture(char* name){
-        friendlyName = name;
+    explicit DVPFrameCapture(int cameraIndex = 0){
+        dvpCameraInfo info[8];
+        dvpUint32 count = 0;
+        /* 枚举设备 */
+        dvpRefresh(&count);
+        if (count > 8)
+            count = 8;
+        for (int i = 0; i < count; i++)
+        {
+            if (dvpEnum(i, &info[i]) == DVP_STATUS_OK)
+            {
+                printf("[%d]-Camera FriendlyName : %s\r\n", i, info[i].FriendlyName);
+            }
+        }
+        friendlyName = info[cameraIndex].FriendlyName;
         dvpRegion region;
         double exp;
         float gain;
         bool trigMode = false;
 
-        status = dvpOpenByName(name, OPEN_NORMAL, &h);
+        status = dvpOpenByName(friendlyName, OPEN_NORMAL, &h);
         if(status != DVP_STATUS_OK){
             printf("dvpOpenByName failed with err:%d\r\n", status);
             return;
@@ -48,7 +61,7 @@ public:
             printf("dvpGetRoi failed with err:%d\r\n", status);
             return;
         }
-        printf("%s, region: x:%d, y:%d, w:%d, h:%d\r\n", name, region.X, region.Y, region.W, region.H);
+        printf("%s, region: x:%d, y:%d, w:%d, h:%d\r\n", friendlyName, region.X, region.Y, region.W, region.H);
 
         /* 打印曝光增益信息 */
         status = dvpGetExposure(h, &exp);
@@ -65,7 +78,7 @@ public:
             return;
         }
 
-        printf("%s, exposure: %lf, gain: %f\r\n", name, exp, gain);
+        printf("%s, exposure: %lf, gain: %f\r\n", friendlyName, exp, gain);
 
 
         /* 开始视频流 */
