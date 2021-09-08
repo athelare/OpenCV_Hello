@@ -3,6 +3,7 @@
 //
 
 #include"include/DVPCamera.h"
+#include "main.h"
 #include<iostream>
 #include<opencv2/opencv.hpp>
 using namespace std;
@@ -11,7 +12,7 @@ using namespace std;
 
 
 
-int main4(){
+int getPhotoFromMultipleCameras(){
     printf("start...\r\n");
 
     int cameraCount = 0;

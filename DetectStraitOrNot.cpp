@@ -2,9 +2,12 @@
 // Created by Jiyu_ on 2021/8/2.
 //
 
-#include "DvpFrameCapture.h"
-#include "utils.h"
+#include "main.h"
+#include "../cv_target_vision/src/utils.h"
 #include <iostream>
+#include <opencv2/opencv.hpp>
+using namespace std;
+using namespace cv;
 
 ObjectPointFinder* of = nullptr;
 
@@ -13,7 +16,7 @@ struct ROIElement{
     bool drawing;
     Point pt1, pt2;
     Rect rect;
-    int firstRowCol;
+    int firstRowCol{};
     Mat firstRowTemplate;
     vector<Point> chosenPoints;
     vector<Point> lastPointPosition;
@@ -41,7 +44,7 @@ struct ROIElement{
         return rect = Rect(Point(max(min(pt1.x, pt2.x), 0), max(min(pt1.y, pt2.y), 0)),
                           Point(max(pt1.x, pt2.x), max(pt1.y, pt2.y)));
     }
-    static int getMinDiffCol(uchar* frameRow1, uchar* frameRow2, int startCol1, int startCol2, int width, int range){
+    static int getMinDiffCol(const uchar* frameRow1, const uchar* frameRow2, int startCol1, int startCol2, int width, int range){
         int minDiff = 55555555, minDiffCol = 0;
         uchar p1, p2;
         for (int col = startCol2 - range; col < startCol2 + range; ++col){
@@ -61,7 +64,7 @@ struct ROIElement{
     }
     vector<Point> getVerticalLine(const Mat& frameGray){
         uchar *frameRow1, *frameRow2, p1, p2;
-        Rect selectedArea = cv::Rect(this->rect.tl()*2, this->rect.br()*2);
+        Rect selectedArea = cv::Rect(this->rect.tl(), this->rect.br());
         vector<Point>res;
         this->clearROI();
         //std::cout << selectedArea << std::endl;
@@ -75,13 +78,13 @@ struct ROIElement{
             frameRow2 = frameGray.data + frameGray.step * selectedArea.y;
             firstRowCol = getMinDiffCol(frameRow1, frameRow2, selectedArea.x, firstRowCol, selectedArea.width, selectedArea.width);
         }
-        res.emplace_back(firstRowCol + this->rect.width, selectedArea.y);
+        res.emplace_back(firstRowCol + this->rect.width/2, selectedArea.y);
         frameRow1 = frameGray.data + frameGray.step * selectedArea.y;
         int lastRowCol = firstRowCol;
         for(int row = selectedArea.y + 1; row < selectedArea.br().y; ++row){
             frameRow2 = frameGray.data + frameGray.step * row;
             lastRowCol = getMinDiffCol(frameRow1, frameRow2, firstRowCol, lastRowCol, selectedArea.width, 5);
-            res.emplace_back(lastRowCol + this->rect.width, row);
+            res.emplace_back(lastRowCol + this->rect.width/2, row);
         }
         //this->lastColPosition = vector<int>(this->initialColPosition.begin(), this->initialColPosition.end());
         return res;
@@ -107,13 +110,12 @@ void mouseHandlerROI(int event, int x, int y, int flags, void* param){
             roi->cornerPoints();
         }
     }else if(event == cv::EVENT_RBUTTONDOWN){
-        roi->addChosenPoints(x*2, y*2);
+        roi->addChosenPoints(x, y);
     }else if(event == cv::EVENT_MBUTTONDOWN && of){
-        of->findPoint(x*2, y*2);
+        of->findPoint(x, y);
         cout << "(" << of->retAddr()[0] << ", " << of->retAddr()[1] << ")" << endl;
     }
 }
-
 
 bool polynomial_curve_fit(std::vector<cv::Point>& key_point, int n, cv::Mat& A)
 {
@@ -151,7 +153,6 @@ bool polynomial_curve_fit(std::vector<cv::Point>& key_point, int n, cv::Mat& A)
     return true;
 }
 
-
 Point2f getNearestCornerPosition(Mat&gray){
     Mat binary, bgrGray;
     vector<Point2f>corners;
@@ -182,8 +183,7 @@ Point2f getNearestCornerPosition(Mat&gray){
     return minPoint;
 };
 
-
-int main(){
+int DetectStraitOrNot(){
     const char ESC_KEY = 27;
     const char ENTER_KEY = 13;
     const char BACK_SPACE = 8;
@@ -193,7 +193,8 @@ int main(){
 
 
     // Camera
-    DVPFrameCapture cap;
+    //DVPFrameCapture cap;
+    VideoCapture cap(1);
     cv::Mat frame, img, uFrame, frameGray;
     cv::Mat cameraMatrix, distCoeffs;
     int imageWidth, imageHeight;
@@ -221,13 +222,13 @@ int main(){
     char tmpStr[64];
 
     while(true){
-        cap.nextFrame(frame);
+        cap.read(frame);
 
         cvtColor(frame, frameGray, cv::COLOR_BGR2GRAY);
         // 检测直线与检测点
         if(roi.validROI()) {
             vector<Point> linePoints = roi.getVerticalLine(frameGray);
-            Point leftP(roi.firstRowCol, roi.rect.y*2), rightP(roi.firstRowCol + roi.rect.width*2, roi.rect.y*2);
+            Point leftP(roi.firstRowCol, roi.rect.y), rightP(roi.firstRowCol + roi.rect.width, roi.rect.y);
             line(frame, leftP + Point(0, 5),  leftP + Point(0, -5), COLOR_RED, 2);
             line(frame, rightP + Point(0, 5),  rightP + Point(0, -5), COLOR_RED, 2);
             line(frame, leftP,  rightP, COLOR_RED, 2);
@@ -300,9 +301,9 @@ int main(){
         }
 
 
-        cv::resize(frame, img, cv::Size(1224, 1024));
+        //cv::resize(frame, img, cv::Size(1224, 1024));
 
-        cv::imshow("asd", img);
+        cv::imshow("asd", frame);
 
         int key = cv::waitKey(30);
         if(key == ESC_KEY)break;
@@ -310,7 +311,7 @@ int main(){
             roi.popChosenPoints();
         }
         else if(key == ENTER_KEY){
-            cap.nextFrame(frame);
+            cap.read(frame);
             bool status = calcExParameters("out_camera_data_dvp_5MP_12mm.yml", frame, "calc_params.yml", 8, 5, 30);
             if(status){
                 fs.open("calc_params.yml", FileStorage::READ);

@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <thread>
+#include "main.h"
 using namespace std;
 
 // DVP API 依赖
@@ -190,7 +191,7 @@ void test(void* p)
 	printf("test quit, %s, status:%d\r\n", name, status);
 }
 
-int main3()
+int Dvp2Getframe()
 {
 	printf("start...\r\n");
 

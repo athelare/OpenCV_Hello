@@ -1,14 +1,10 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
-
+#include "main.h"
 using namespace cv;
 using namespace std;
 
-
-
-
-
-int mai3n(){
+int HoughCircleOfHole(){
     Mat img = cv::imread("hole.png", 0);
     Mat colorImg;
     cvtColor(img, colorImg, cv::COLOR_GRAY2BGR);
